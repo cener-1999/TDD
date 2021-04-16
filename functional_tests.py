@@ -14,9 +14,40 @@ class NewVisitorTest(unittest.TestCase): #(1)
         #to check out its homepage
         self.browser.get('http://localhost:8000')
         
+        '''
         #She notices the page title and header mention to-do lists
         self.assertIn('To-Do',self.browser.title)#(4)
         self.fail('Finish the test！')#(5)
+        '''
+             #She notices the page title and header mention to_do lists
+        self.assertIn('To-Do',self.browser.title)
+        header_text = self.browser.find_element_by_tag_name('h1').text
+        self.assertIn('To-Do',header_text)
+        
+        #She is invited to enter a to-do item straight away
+        inputbox=self.browser.find_element_by_id('id_new_item')
+        self.assertEqual(
+            inputbox.get_attribute('placeholder'),
+            'Enter a to-do item'
+            )
+        #She types "Buy peacock feathers" into a text box (Edith`s hobby
+        #is tying fly_fishing lures)
+        inputbox.send_keys('Buy peacock feathers')
+
+        inputbox.send_keys(Keys.Enter)
+        time.sleep(1)
+        
+        table =self.browser.find_element_by_id('id_list_table')
+        rows=table.find_element_by_tag_name('tr')
+        self.assertTure(
+            any(row.text=='1: Buy peacock feathers' for row in rows)
+            )
+            
+        #There is still a text box inviting her to add another item.She
+        #enters "Use peacock feathers to make a fly(Edith is very methodical)"
+        self.fail('Finish the test')
+   
+ 
         
 if __name__ =='__main__': #(6)
     unittest.main(warnings='ignore')#(7)
