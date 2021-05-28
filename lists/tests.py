@@ -1,7 +1,8 @@
 from django.test import TestCase
 from django.urls import resolve
-from django.http import HttpRequest
+from django.http import HttpRequest, response
 from django.template.loader import render_to_string
+from urllib3.packages.six import assertCountEqual
 from lists.views import home_page 
 from lists.models import Item
 
@@ -25,17 +26,25 @@ class HomePageTest(TestCase):
         expected_html =render_to_string('home.html')
         self.assertEqual(html.expected_html)
     '''
-    '''
+    
     def test_uses_home_template(self):
         response=self.client.get('/')
         self.assertTemplateUsed(response,'home.html')
-        '''
        
-       
+    '''   
     def test_can_save_a_POST_request(self):
-        response =self.client.post('/',data={'item_text':'A new list item'})
-        self.assertIn('A new list item',response.content.decode())
-        self.assertTemplateUsed(response,'home.html')
+        response = self.client.post('/',data={'item_text':'A new list item'})
+        
+        self.assertEqual(Item.objects.count(),1)
+        new_item=Item.objects.first()
+        self.assertEqual(new_item.text,'A new list item')
+       
+    def test_redirects_after_POST(self):
+        response = self.client.post('/',data={'item_text':'A new list item'})
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(response['location'],'')
+       
+    '''
         
     '''
     def test_home_page_returns_correct_html(self):
@@ -47,7 +56,12 @@ class HomePageTest(TestCase):
         
         self.assertTemplateUsed(response,'home.html')
     '''
-
+    
+    def test_only_saves_items_when_necessary(self):
+        self.client.get('/')
+        self.assertEqual(Item.objects.count(),0)
+    
+        
 '''
 这些代码干了些什么？ (第一版) 
 resolve是Django用来解析URL的function，找到URL应该映射到哪个view。 
@@ -72,4 +86,30 @@ class ItemModelTest(TestCase):
         second_saved_item=saved_items[1]
         self.assertEqual(first_saved_item.text,'The first (ever) list item')
         self.assertEqual(second_saved_item.text,'Item the second')
+    
+    def test_can_save_a_POST_request(self):
+        response = self.client.post('/',data={'item_text':'A new list item'})
         
+        self.assertEqual(Item.objects.count(),1)
+        new_item=Item.objects.first()
+        self.assertEqual(new_item.text,'A new list item')
+       
+    def test_redirects_after_POST(self):
+        response = self.client.post('/',data={'item_text':'A new list item'})
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(response['location'],'/lists/the-only-list-in-the-world')
+
+class ListViewTest(TestCase):
+
+    def test_uses_lists_template(self):
+        response = self.client.get('/lists/the-only-list-in-the-world/')
+        self.assertTemplateUsed(response,'list.html')
+
+    def test_displays_all_items(self):
+        Item.objects.create(text='itemey 1')
+        Item.objects.create(text='itemey 2')
+
+        response = self.client.get('/lists/the-only-list-in-the-world/')
+
+        self.assertContains(response,'itemey 1')
+        self.assertContains(response,'itemey 2')
